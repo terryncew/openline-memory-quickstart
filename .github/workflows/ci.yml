@@ -29,12 +29,12 @@ jobs:
           SQLITE_PATH: memory.db
         run: |
           nohup uvicorn server:app --host 127.0.0.1 --port 8787 >/tmp/app.log 2>&1 &
-          for i in {1..30}; do
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8787/health >/dev/null; then break; fi
             sleep 0.5
-            curl -sf http://127.0.0.1:8787/health && break || true
           done
 
-      - name: Smoke: write / verify / search / revoke
+      - name: "Smoke - write / verify / search / revoke"
         run: |
           curl -s http://127.0.0.1:8787/.well-known/receipts.json | jq .
           W=$(curl -sX POST http://127.0.0.1:8787/mem/write -H 'content-type: application/json' \
