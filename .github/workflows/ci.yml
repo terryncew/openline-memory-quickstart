@@ -9,13 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Install deps
         run: pip install -r requirements.txt
+
       - name: Launch app
         env:
           DEV_SEED: dev-seed-change-me-32bytes________
@@ -25,14 +29,16 @@ jobs:
           SQLITE_PATH: memory.db
         run: |
           nohup uvicorn server:app --host 127.0.0.1 --port 8787 >/tmp/app.log 2>&1 &
-          for i in {1..30}; do sleep 0.5; curl -sf http://127.0.0.1:8787/health && break || true; done
-          curl -s http://127.0.0.1:8787/health | jq .
+          for i in {1..30}; do
+            sleep 0.5
+            curl -sf http://127.0.0.1:8787/health && break || true
+          done
 
       - name: Smoke: write / verify / search / revoke
         run: |
           curl -s http://127.0.0.1:8787/.well-known/receipts.json | jq .
           W=$(curl -sX POST http://127.0.0.1:8787/mem/write -H 'content-type: application/json' \
-               -d '{"text":"Prefers summary before labs.","tags":["pref:clinician"],"scope":"private","consent":"explicit","ttl_days":1}')
+            -d '{"text":"Prefers summary before labs.","tags":["pref:clinician"],"scope":"private","consent":"explicit","ttl_days":1}')
           echo "$W" | jq .
           REC=$(echo "$W" | jq -c .receipt)
           curl -sX POST http://127.0.0.1:8787/verify -H 'content-type: application/json' -d "$REC" | jq .
